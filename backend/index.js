@@ -38,7 +38,8 @@ const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 const alertRegistry = new ethers.Contract(alertRegistryAddress, AlertABI, signer);
 
 // Start WebSocket server
-const { broadcastAlert } = createWebSocketServer(8080);
+const wsPort = process.env.PORT || 8080;
+const { broadcastAlert } = createWebSocketServer(wsPort);
 
 async function start() {
     console.log("💻 Starting RiskShield backend listener...");

@@ -68,7 +68,7 @@
 
 ### 5. **Backend Integration**
 
-- WebSocket server on port 8080
+- WebSocket server on port (configurable via PORT environment variable, defaults to 8080)
 - Real-time alert broadcasting
 - Automatic connection to frontend
 - Fallback to mock data if connection fails
@@ -88,7 +88,7 @@ cd backend
 node index.js
 ```
 
-The backend will automatically start the WebSocket server on port 8080.
+The backend will automatically start the WebSocket server on the port specified by the PORT environment variable (defaults to 8080).
 
 ## 📝 Environment Variables
 
