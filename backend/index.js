@@ -1,8 +1,70 @@
-require('dotenv').config();
+require("dotenv").config();
+const express = require("express");
+const http = require("http");
+const WebSocket = require("ws");
 const { ethers } = require("ethers");
-const { createWebSocketServer } = require('./websocket-server');
 
-// Connect to Arbitrum mainnet using Alchemy RPC
+// Express app
+const app = express();
+
+// Render requirement → Port must be dynamic (NO hardcoded ports)
+const PORT = process.env.PORT || 3000;
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Attach WebSocket to SAME server (Render requirement)
+// WebSocket path: /alerts
+const wss = new WebSocket.Server({ server, path: "/alerts" });
+
+// WebSocket connection handler
+wss.on("connection", (ws) => {
+  console.log("🔗 WebSocket client connected");
+  ws.send(JSON.stringify({ msg: "Client connected to RiskShield backend" }));
+
+  ws.on("message", (message) => {
+    console.log("📨 Received message:", message.toString());
+  });
+
+  ws.on("close", () => {
+    console.log("❌ WebSocket client disconnected");
+  });
+
+  ws.on("error", (error) => {
+    console.error("❌ WebSocket error:", error);
+  });
+});
+
+// Function to broadcast alerts to all connected clients
+function broadcastAlert(alert) {
+  const message = JSON.stringify(alert);
+  let clientCount = 0;
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+      clientCount++;
+    }
+  });
+  console.log(`📢 Broadcasted alert to ${clientCount} clients`);
+}
+
+// Express routes
+app.get("/", (req, res) => {
+  res.json({
+    status: "online",
+    service: "RiskShield Backend",
+    websocket: "/alerts"
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "healthy" });
+});
+
+// ---- RiskShield Core ----
+console.log("💻 Starting RiskShield backend listener...");
+
+// Connect to Arbitrum RPC
 const RPC = process.env.ALCHEMY_ARBITRUM_RPC;
 if (!RPC) {
   console.error("❌ ALCHEMY_ARBITRUM_RPC is not set in .env file");
@@ -10,9 +72,10 @@ if (!RPC) {
 }
 
 const provider = new ethers.JsonRpcProvider(RPC);
+console.log("📡 Connected to Arbitrum mainnet");
 
 // BLOK Garden Factory and Garden ABIs (minimal needed for events)
-const GardenFactoryAddress = process.env.GARDEN_FACTORY || "0x...";  // Set GARDEN_FACTORY in .env
+const GardenFactoryAddress = process.env.GARDEN_FACTORY || "0x...";
 const GardenFactoryABI = [ 
     "event GardenCreated(address indexed garden, address indexed creator)" 
 ];
@@ -23,12 +86,13 @@ const GardenABI = [
     "function maxAllocation(address token) view returns (uint256)"
 ];
 
-// Use the deployed AlertRegistry address from your deployment output
+// Load AlertRegistry
 const alertRegistryAddress = process.env.ALERT_REGISTRY;
 if (!alertRegistryAddress) {
   console.error("❌ ALERT_REGISTRY is not set in .env file");
   process.exit(1);
 }
+console.log("📝 AlertRegistry address:", alertRegistryAddress);
 
 const AlertABI = [ 
     "function saveAlert(address garden, address manager, string reason, bytes metadata) external"
@@ -37,15 +101,7 @@ const AlertABI = [
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 const alertRegistry = new ethers.Contract(alertRegistryAddress, AlertABI, signer);
 
-// Start WebSocket server
-const wsPort = process.env.PORT || 8080;
-const { broadcastAlert } = createWebSocketServer(wsPort);
-
 async function start() {
-    console.log("💻 Starting RiskShield backend listener...");
-    console.log("📡 Connected to Arbitrum mainnet");
-    console.log("📝 AlertRegistry address:", alertRegistryAddress);
-
     // Listen to Garden Factory for new Gardens
     if (GardenFactoryAddress !== "0x...") {
         const factory = new ethers.Contract(GardenFactoryAddress, GardenFactoryABI, provider);
@@ -62,7 +118,7 @@ async function start() {
     }
 
     // For demo: watch a specific Garden address
-    const demoGarden = process.env.DEMO_GARDEN || "0x..."; // Can be set in .env
+    const demoGarden = process.env.DEMO_GARDEN || "0x...";
     if (demoGarden !== "0x...") {
         console.log("🔍 Starting demo monitoring for Garden:", demoGarden);
         watchGarden(demoGarden);
@@ -153,8 +209,15 @@ process.on('SIGTERM', () => {
     process.exit(0);
 });
 
+// Start RiskShield monitoring
 start().catch((error) => {
     console.error("❌ Fatal error:", error);
     process.exit(1);
 });
 
+// Start server (Render-compatible)
+// Must listen ONLY on process.env.PORT
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on PORT ${PORT}`);
+  console.log(`🔌 WebSocket available at ws://<host>:${PORT}/alerts`);
+});

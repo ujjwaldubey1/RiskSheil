@@ -2,9 +2,17 @@
 
 This backend service monitors BLOK Garden contracts on Arbitrum mainnet for risk violations and saves alerts to the AlertRegistry contract.
 
+**✅ Render-Compatible**: The backend uses Express HTTP server with WebSocket attached, making it fully compatible with Render and other cloud platforms.
+
 ## Setup
 
-1. **Environment Variables**
+1. **Install Dependencies**
+
+   ```bash
+   npm install
+   ```
+
+2. **Environment Variables**
 
    Add these to your root `.env` file (or create `backend/.env`):
 
@@ -14,16 +22,20 @@ This backend service monitors BLOK Garden contracts on Arbitrum mainnet for risk
    ALERT_REGISTRY=0x...  # Address of deployed AlertRegistry contract
    GARDEN_FACTORY=0x...  # BLOK Garden Factory address (optional)
    DEMO_GARDEN=0x...     # Specific Garden address to monitor (optional)
-   PORT=8080             # WebSocket server port (optional, defaults to 8080)
+   PORT=3000             # Server port (optional, defaults to 3000, Render sets automatically)
    ```
 
-2. **Run the Backend**
+3. **Run the Backend**
 
    ```bash
+   npm start
+   # or
    node index.js
    ```
 
-   The WebSocket server will start on the port specified by the `PORT` environment variable (defaults to 8080).
+   The server will start on the port specified by the `PORT` environment variable (defaults to 3000).
+   - HTTP server: `http://localhost:PORT`
+   - WebSocket: `ws://localhost:PORT/alerts`
 
 ## Features
 
@@ -39,15 +51,30 @@ This backend service monitors BLOK Garden contracts on Arbitrum mainnet for risk
 
 - Update `GARDEN_FACTORY` in `.env` with the actual BLOK Garden Factory address
 - Set `DEMO_GARDEN` in `.env` to monitor a specific Garden
-- Set `PORT` in `.env` to configure the WebSocket server port (defaults to 8080)
+- Set `PORT` in `.env` to configure the server port (defaults to 3000, Render sets automatically)
 - The service will automatically start monitoring once Gardens are detected or configured
 
 ## WebSocket Connection
 
-The backend starts a WebSocket server that broadcasts alerts to all connected clients. The frontend can connect to:
+The backend provides a WebSocket endpoint that broadcasts alerts to all connected clients. The frontend can connect to:
 
 ```
 ws://localhost:PORT/alerts
 ```
 
-Where `PORT` is the value from the `PORT` environment variable (default: 8080).
+For production (Render), use:
+```
+wss://your-service-name.onrender.com/alerts
+```
+
+Where `PORT` is the value from the `PORT` environment variable (default: 3000).
+
+## HTTP Endpoints
+
+- `GET /` - Service status
+- `GET /health` - Health check endpoint
+- `WS /alerts` - WebSocket connection for real-time alerts
+
+## Render Deployment
+
+See [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) for detailed deployment instructions.
