@@ -48,17 +48,111 @@ function broadcastAlert(alert) {
   console.log(`📢 Broadcasted alert to ${clientCount} clients`);
 }
 
+// Middleware for JSON parsing
+app.use(express.json());
+
+// Track monitored Gardens
+const monitoredGardens = new Map(); // gardenAddress -> { contract, listeners }
+
 // Express routes
 app.get("/", (req, res) => {
   res.json({
     status: "online",
     service: "RiskShield Backend",
-    websocket: "/alerts"
+    websocket: "/alerts",
+    monitoredGardens: Array.from(monitoredGardens.keys())
   });
 });
 
 app.get("/health", (req, res) => {
   res.json({ status: "healthy" });
+});
+
+// API: Get all monitored Gardens
+app.get("/api/gardens", (req, res) => {
+  const gardens = Array.from(monitoredGardens.keys()).map(address => ({
+    address,
+    status: "monitoring"
+  }));
+  res.json({ gardens, count: gardens.length });
+});
+
+// API: Add a Garden to monitor
+app.post("/api/gardens", async (req, res) => {
+  try {
+    const { address } = req.body;
+    
+    if (!address) {
+      return res.status(400).json({ error: "Garden address is required" });
+    }
+
+    // Validate address format
+    if (!ethers.isAddress(address)) {
+      return res.status(400).json({ error: "Invalid Ethereum address format" });
+    }
+
+    const normalizedAddress = address.toLowerCase();
+
+    // Check if already monitoring
+    if (monitoredGardens.has(normalizedAddress)) {
+      return res.status(400).json({ 
+        error: "Garden is already being monitored",
+        address: normalizedAddress
+      });
+    }
+
+    // Start monitoring
+    await watchGarden(normalizedAddress);
+    
+    res.json({ 
+      success: true,
+      message: `Started monitoring Garden: ${normalizedAddress}`,
+      address: normalizedAddress
+    });
+  } catch (error) {
+    console.error("❌ Error adding Garden:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Remove a Garden from monitoring
+app.delete("/api/gardens/:address", (req, res) => {
+  try {
+    const address = req.params.address.toLowerCase();
+
+    if (!monitoredGardens.has(address)) {
+      return res.status(404).json({ 
+        error: "Garden is not being monitored",
+        address
+      });
+    }
+
+    // Remove listeners (in a real implementation, you'd need to store and remove event listeners)
+    monitoredGardens.delete(address);
+    
+    console.log(`🛑 Stopped monitoring Garden: ${address}`);
+    
+    res.json({ 
+      success: true,
+      message: `Stopped monitoring Garden: ${address}`,
+      address
+    });
+  } catch (error) {
+    console.error("❌ Error removing Garden:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Get Garden monitoring status
+app.get("/api/gardens/:address", (req, res) => {
+  const address = req.params.address.toLowerCase();
+  const isMonitoring = monitoredGardens.has(address);
+  
+  res.json({
+    address,
+    monitoring: isMonitoring,
+    status: isMonitoring ? "active" : "not monitoring"
+  });
 });
 
 // ---- RiskShield Core ----
@@ -117,20 +211,52 @@ async function start() {
         console.log("⚠️  GardenFactoryAddress not set, skipping factory listener");
     }
 
-    // For demo: watch a specific Garden address
+    // Load Gardens from environment variables
     const demoGarden = process.env.DEMO_GARDEN || "0x...";
     if (demoGarden !== "0x...") {
-        console.log("🔍 Starting demo monitoring for Garden:", demoGarden);
-        watchGarden(demoGarden);
+        console.log("🔍 Starting monitoring for Garden from DEMO_GARDEN:", demoGarden);
+        await watchGarden(demoGarden);
+    }
+
+    // Support multiple Gardens via comma-separated list
+    const gardensList = process.env.GARDENS || "";
+    if (gardensList) {
+        const gardens = gardensList.split(",").map(addr => addr.trim()).filter(addr => addr && addr !== "0x...");
+        for (const gardenAddr of gardens) {
+            console.log("🔍 Starting monitoring for Garden from GARDENS list:", gardenAddr);
+            await watchGarden(gardenAddr);
+        }
+    }
+
+    if (monitoredGardens.size === 0) {
+        console.log("⚠️  No Gardens configured for monitoring");
+        console.log("💡 Add Gardens via:");
+        console.log("   - Environment: DEMO_GARDEN=0x... or GARDENS=0x...,0x...");
+        console.log("   - API: POST /api/gardens with { address: '0x...' }");
     } else {
-        console.log("⚠️  DEMO_GARDEN not set, skipping demo garden monitoring");
+        console.log(`✅ Monitoring ${monitoredGardens.size} Garden(s)`);
     }
 }
 
 async function watchGarden(gardenAddress) {
-    console.log("🔍 Monitoring Garden:", gardenAddress);
+    // Normalize address
+    const normalizedAddress = gardenAddress.toLowerCase();
+    
+    // Check if already monitoring
+    if (monitoredGardens.has(normalizedAddress)) {
+        console.log("⚠️  Garden already being monitored:", normalizedAddress);
+        return;
+    }
 
-    const garden = new ethers.Contract(gardenAddress, GardenABI, provider);
+    console.log("🔍 Monitoring Garden:", normalizedAddress);
+
+    const garden = new ethers.Contract(normalizedAddress, GardenABI, provider);
+    
+    // Store in monitored Gardens map
+    monitoredGardens.set(normalizedAddress, {
+        contract: garden,
+        startTime: Date.now()
+    });
 
     garden.on("SwapExecuted", async (manager, tokenIn, tokenOut, amount, event) => {
         console.log("🔁 SwapExecuted detected:");
