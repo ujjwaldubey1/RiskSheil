@@ -1,0 +1,35 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_19-9d1bef7187471d870c5c575c6b9cef1697602b5b",
+  "solcVersion": "0.8.19",
+  "solcLongVersion": "0.8.19+commit.7dd6d404",
+  "userSourceNameMap": {
+    "contracts/AlertRegistry.sol": "project/contracts/AlertRegistry.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "paris",
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/AlertRegistry.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.19;\r\n\r\ncontract AlertRegistry {\r\n    struct Alert {\r\n        address garden;\r\n        address manager;\r\n        string reason;\r\n        uint256 timestamp;\r\n        bytes metadata;\r\n    }\r\n\r\n    Alert[] public alerts;\r\n\r\n    event AlertSaved(uint256 indexed id, address indexed garden, address indexed manager, string reason);\r\n\r\n    function saveAlert(address garden, address manager, string calldata reason, bytes calldata metadata) external {\r\n        alerts.push(Alert(garden, manager, reason, block.timestamp, metadata));\r\n        emit AlertSaved(alerts.length - 1, garden, manager, reason);\r\n    }\r\n\r\n    function alertsCount() external view returns (uint256) {\r\n        return alerts.length;\r\n    }\r\n}\r\n\r\n"
+      }
+    }
+  }
+}
