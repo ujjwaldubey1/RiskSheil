@@ -1,0 +1,22 @@
+.panel-title {
+  border-bottom: 4px solid var(--manga-black);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  position: relative;
+}
+
+.panel-title::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 50px;
+  height: 4px;
+  background: var(--neon-pink);
+}
+
+.panel-content {
+  position: relative;
+  z-index: 1;
+}
+

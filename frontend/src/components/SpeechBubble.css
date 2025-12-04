@@ -1,0 +1,40 @@
+.speech-bubble-alert {
+  border-color: var(--neon-pink) !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 0 20px var(--neon-pink);
+}
+
+.speech-bubble-risk {
+  border-color: var(--neon-blue) !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 0 20px var(--neon-blue);
+}
+
+.speech-bubble-violation {
+  border-color: #ff0000 !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 0 30px #ff0000;
+  animation: pulse-red 1s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 
+      0 4px 8px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 0 20px #ff0000;
+  }
+  50% {
+    box-shadow: 
+      0 4px 8px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 0 40px #ff0000;
+  }
+}
+

@@ -1,0 +1,42 @@
+.chibi-robot {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  cursor: pointer;
+  filter: drop-shadow(4px 4px 0 rgba(0, 0, 0, 0.3));
+}
+
+.robot-svg {
+  display: block;
+}
+
+.eye-left,
+.eye-right {
+  transition: r 0.2s ease;
+}
+
+.expression-alert .eye-left,
+.expression-alert .eye-right {
+  animation: blink-alert 0.3s ease-in-out 3;
+}
+
+@keyframes blink-alert {
+  0%, 100% { r: 8; }
+  50% { r: 2; }
+}
+
+.alert-indicator {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 2rem;
+  animation: bounce 0.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px var(--neon-pink));
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
